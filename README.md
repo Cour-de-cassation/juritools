@@ -4,10 +4,10 @@ Package permettant la pseudonymisation des décisions de justice des bases JURIN
 
 ## Installation
 
-Cet utilitaire fonctionne sous Python 3.6+. Pour l'installer il faut effectuer les commandes suivantes :
+Cet utilitaire fonctionne sous Python 3.9+. Pour l'installer il faut effectuer les commandes suivantes :
 
 ```bash
-git clone https://gitlab.com/openjustice/nlp/juritools.git
+git clone https://github.com/Cour-de-cassation/juritools.git
 cd juritools
 pip install .
 ```

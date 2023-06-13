@@ -1,0 +1,50 @@
+etablissement
+creche
+ecole
+ecole primaire
+ecole maternelle
+college
+lycee
+lycee professionnel
+lycee technique
+faculte
+fac
+universite
+iut
+hopital
+clinique
+caserne
+eglise
+basilique
+cathedrale
+chapelle
+abbaye
+couvent
+monastere
+aeroport
+station
+port
+gare
+stade
+club
+centre penitentiaire
+centre de retention administrative
+centre associatif
+centre de formation
+centre d'accueil
+mairie
+temple
+synagogue
+mosquee
+maison des associations
+foyer
+residence universitaire
+institut
+cite
+etablissement de sante
+ehpad
+maison de retraite
+residence
+musee
+atelier
+camping

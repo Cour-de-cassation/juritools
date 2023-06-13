@@ -1,0 +1,12 @@
+spacy==3.2.1
+tqdm>=4.26.0
+pandas==1.5.3
+flair>=0.12.2
+flashtext==2.7
+unidecode>=1.0.23
+beautifulsoup4==4.6.3
+luhn==0.2.0
+schwifty==2021.1.0
+python-stdnum==1.16
+pydantic==1.7.4
+jurispacy-tokenizer>=1.1.0

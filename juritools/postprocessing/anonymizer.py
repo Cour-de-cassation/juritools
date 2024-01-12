@@ -1,13 +1,15 @@
-from typing import List, Dict
-from juritools.type import NamedEntity
-from flashtext import KeywordProcessor
-from operator import itemgetter
-import string
 import random
+import string
+from operator import itemgetter
+from typing import Dict
+
+from flashtext import KeywordProcessor
+
+from juritools.type import NamedEntity
 
 
 class Anonymizer:
-    def __init__(self, text: str, entities: List[NamedEntity]):
+    def __init__(self, text: str, entities: list[NamedEntity]):
         self.text = text
         self.entities = entities
 
@@ -27,7 +29,7 @@ class Anonymizer:
         index = 1
         keyword_processor = self._instantiate_flashtext(True)
         for entity in self.entities:
-            if entity.label in category:
+            if entity.label.value in category:
                 # Dealing with replacement letters
                 if entity.text.lower() not in entities_to_replace.keys():
                     if index <= 26:
@@ -87,9 +89,9 @@ class Anonymizer:
 
         keyword_processor = self._instantiate_flashtext(True)
         for entity in self.entities:
-            if entity.label in category:
+            if entity.label.value in category:
                 if replace_by_label:
-                    keyword_processor.add_keyword(entity.text, f"[{entity.label}]")
+                    keyword_processor.add_keyword(entity.text, f"[{entity.label.value}]")
                 else:
                     keyword_processor.add_keyword(entity.text, "[...]")
         if text:
@@ -109,8 +111,8 @@ class Anonymizer:
         ordered_entities = self._ordered_entities(reverse=True)
         text = self.text
         for entity in ordered_entities:
-            if entity.label in category:
-                text = f"{text[:entity.start]}[{entity.label}]{text[entity.end:]}"
+            if entity.label.value in category:
+                text = f"{text[:entity.start]}[{entity.label.value}]{text[entity.end:]}"
         return text
 
     def _ordered_entities(self, reverse=False):

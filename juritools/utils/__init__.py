@@ -1,6 +1,7 @@
 from .readers import xml_jurinet_reader, html_jurica_reader
 from .instantiate_flashtext import instantiate_flashtext
 from .deaccent import deaccent
+from .azertypo import azerty_levenshtein_similarity
 from .is_punctuation import is_punctuation
 import logging.config
 
@@ -34,4 +35,3 @@ logging.config.dictConfig(
 )
 
 logger = logging.getLogger("openjustice")
-

@@ -13,4 +13,6 @@ def is_punctuation(char):
     ):
         return True
     cat = unicodedata.category(char)
-    return bool(cat.startswith("P"))
+    if cat.startswith("P"):
+        return True
+    return False

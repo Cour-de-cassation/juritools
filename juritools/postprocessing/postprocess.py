@@ -1,21 +1,31 @@
-from juritools.type import NamedEntity
-import pandas as pd
-from typing import List, Optional, Dict
-from operator import attrgetter
+import bisect
 import json
+from typing import Dict, Optional
+import heapq
+import pandas as pd
+
+from juritools.type import CategoryEnum, NamedEntity
 
 
 class PostProcess:
     def __init__(
         self,
-        entities: List[NamedEntity],
-        manual_checklist: List[str],
+        entities: list[NamedEntity],
+        checklist: list[str],
         metadata: Optional[pd.core.frame.DataFrame],
     ):
-        self.entities = entities
-        self.start_ents = [entity.start for entity in self.entities]
-        self.end_ents = [entity.end for entity in self.entities]
-        self.manual_checklist = manual_checklist
+        self.entities: list[NamedEntity] = []
+        self.start_ents: list[int] = []
+        self.end_ents: list[int] = []
+        self.entities_by_category: dict[CategoryEnum, list[NamedEntity]] = {c: [] for c in CategoryEnum}
+
+        for e in entities:
+            self.entities.append(e)
+            self.start_ents.append(e.start)
+            self.end_ents.append(e.end)
+            self.entities_by_category[e.label].append(e)
+
+        self.checklist = checklist
         self.metadata = metadata
 
     @property
@@ -30,22 +40,39 @@ class PostProcess:
         self._entities = value
 
     @property
-    def manual_checklist(self):
+    def checklist(self):
         """
         This function returns a list contains warnings requiring manual verification
         """
-        return self._manual_checklist
+        return self._checklist
 
-    @manual_checklist.setter
-    def manual_checklist(self, value):
-        self._manual_checklist = value
+    @checklist.setter
+    def checklist(self, value):
+        self._checklist = value
 
     @staticmethod
-    def _entities_to_dict(entities: List[NamedEntity]) -> List[Dict]:
+    def _entities_to_dict(entities: list[NamedEntity]) -> list[Dict]:
         """
         This function returns
         """
-        return [entity.dict() for entity in entities]
+        return [entity.model_dump(mode="json") for entity in entities]
+
+    def sort_entities(self, reverse=False):
+        entities = []
+        entities_by_category = {c: [] for c in CategoryEnum}
+        entities_starts = []
+        entities_ends = []
+
+        for entity in sorted(self.entities, reverse=reverse):
+            entities.append(entity)
+            entities_by_category[entity.label].append(entity)
+            entities_starts.append(entity.start)
+            entities_ends.append(entity.end)
+
+        self.entities = entities
+        self.entities_by_category = entities_by_category
+        self.start_ents = entities_starts
+        self.end_ents = entities_ends
 
     def ordered_entities(self, reverse=False):
         """
@@ -53,41 +80,45 @@ class PostProcess:
         Inputs:
         - reverse: if true, get order entities in reverse order
         """
-        if reverse:
-            return sorted(self.entities, key=attrgetter("start"), reverse=True)
-        return sorted(self.entities, key=attrgetter("start"))
+        if not reverse:
+            return self.entities
+        else:
+            return self.entities[::-1]
 
-    def map_category_to_camelcase(self, list_of_entities):
-        """
-        This function returns the list of entities with the label
-        in camelCase. Example: PersonnePhysicoMorale
-        """
-        camelCaseCategories = {
-            "adresse": "adresse",
-            "cadastre": "cadastre",
-            "personnemorale": "personneMorale",
-            "personnephysicomorale": "personnePhysicoMorale",
-            "personnephysiqueprenom": "personnePhysique",
-            "personnephysiquenom": "personnePhysique",
-            "personnephysique": "personnePhysique",
-            "professionnelavocat": "professionelAvocat",
-            "professionnelmagistratgreffier": "professionnelMagistratGreffier",
-            "datedenaissance": "dateNaissance",
-            "datededeces": "dateDeces",
-            "datedemariage": "dateMariage",
-            "telephonefaxemail": "telephoneFaxEmail",
-            "noinsee": "noInsee",
-            "plaquedimmatriculation": "plaqueImmatriculation",
-            "comptebancaire": "compteBancaire",
-            "etablissementmineur": "etablissementMineur",
-            "autrenumero": "autreNumero",
-            "autrelieu": "autreLieu",
-        }
+    def get_entities_for_categories(
+        self,
+        categories: list[CategoryEnum] = [],
+        ordered: bool = False,
+    ) -> list[NamedEntity]:
+        if not ordered:
+            return list(e for c in categories for e in self.entities_by_category[c])
+        else:
+            return list(heapq.merge([self.entities_by_category[c] for c in categories]))
 
-        for entity in list_of_entities:
-            if entity.label in camelCaseCategories:
-                entity.label = camelCaseCategories[entity.label]
-        return list_of_entities
+    def get_professional_entities(
+        self,
+        ordered: bool = False,
+    ) -> list[NamedEntity]:
+        return self.get_entities_for_categories(
+            categories=[
+                CategoryEnum.professionnelAvocat,
+                CategoryEnum.professionnelMagistratGreffier,
+            ],
+            ordered=ordered,
+        )
+
+    def get_civil_date_entities(
+        self,
+        ordered: bool = False,
+    ) -> list[NamedEntity]:
+        return self.get_entities_for_categories(
+            categories=[
+                CategoryEnum.dateDeces,
+                CategoryEnum.dateMariage,
+                CategoryEnum.dateNaissance,
+            ],
+            ordered=ordered,
+        )
 
     def output_json(self, camelcase=True):
         """
@@ -97,19 +128,32 @@ class PostProcess:
         - checks
         """
         output_json = {}
-        ordered_entities = self.ordered_entities()
-        if camelcase:
-            output_json["entities"] = self._entities_to_dict(
-                self.map_category_to_camelcase(ordered_entities)
-            )
-        else:
-            output_json["entities"] = self._entities_to_dict(ordered_entities)
-        output_json["checklist"] = list(set(self.manual_checklist))
-        # output_json_formatted = json.dumps(output_json, ensure_ascii=False).encode('utf8')
+
+        output_json["entities"] = self._entities_to_dict(self.entities)
+        output_json["checklist"] = list(set(c.get_message() for c in self.checklist))
 
         return json.dumps(output_json, ensure_ascii=False, indent=4)
 
-    def check_overlap_entities(self, start_new_entity, end_new_entity):
+    def check_overlap_entities(self, entity: NamedEntity) -> list[NamedEntity]:
+        """
+        This function checks if the new entity will overlap an existing entity
+
+        Args:
+            entity (NamedEntity): entity to compare to the already existing entities
+
+        Returns:
+            overlapping_entities (list[NamedEntity]): list of overlapping entities
+        """
+        overlapping_entities: list[NamedEntity] = []
+        for other_entity in self.entities:
+            if entity.overlaps_with_other_entity(other_entity):
+                overlapping_entities.append(other_entity)
+            else:
+                if entity.end < other_entity.start:
+                    break
+        return overlapping_entities
+
+    def check_overlap_entities_from_index(self, start_new_entity, end_new_entity):
         """
         This function checks if the new entity will overlap an existing entity
 
@@ -125,8 +169,22 @@ class PostProcess:
             or start_new_entity <= start <= end_new_entity
             for start, end in zip(self.start_ents, self.end_ents)
         )
-        if check:
-            self.start_ents.append(start_new_entity)
-            self.end_ents.append(end_new_entity)
 
         return check
+
+    def insert_entity(self, entity: NamedEntity):
+        index = bisect.bisect(self.entities, entity)
+        self.entities.insert(index, entity)
+        self.start_ents.insert(index, entity.start)
+        self.end_ents.insert(index, entity.end)
+        if entity.label not in self.entities_by_category:
+            self.entities_by_category[entity.label] = [entity]
+        else:
+            category_index = bisect.bisect(self.entities_by_category[entity.label], entity)
+            self.entities_by_category[entity.label].insert(category_index, entity)
+
+    def delete_entity(self, entity: NamedEntity):
+        self.entities.remove(entity)
+        self.entities_by_category[entity.label].remove(entity)
+        self.start_ents.remove(entity.start)
+        self.end_ents.remove(entity.end)

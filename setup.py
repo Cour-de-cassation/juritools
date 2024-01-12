@@ -5,7 +5,7 @@ with open("requirements.txt", "r", encoding="utf-8") as file:
 
 setup(
     name="juritools",
-    version="0.11.1",
+    version="0.13.8",
     description="Librairie permettant la pseudonymisation des décisions de justice",
     url="https://github.com/Cour-de-cassation/nlp-juritools",
     license="MIT License",
@@ -22,5 +22,5 @@ setup(
         ]
     },
     zip_safe=False,
-    python_requires=">=3.9",
+    python_requires=">=3.10",
 )

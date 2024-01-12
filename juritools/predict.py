@@ -1,12 +1,14 @@
-from typing import List
-import flair
-from flair.models import SequenceTagger
-from flair.data import Sentence
-from juritools.type import NamedEntity
 import logging
+
+import flair
+from flair.data import Sentence
+from flair.models import SequenceTagger
+
+from juritools.type import NamedEntity
 
 # Remove warning on empty Sentence from flair
 logging.getLogger("flair").setLevel(logging.ERROR)
+
 
 # Load NER model
 def load_ner_model(path: str) -> flair.models.sequence_tagger_model.SequenceTagger:
@@ -20,14 +22,18 @@ class JuriTagger:
         self.model = model
 
     def predict(
-        self, text: str, mini_batch_size: int = 32, all_tags: bool = True
-    ) -> List[Sentence]:
-
+        self,
+        text: str,
+        mini_batch_size: int = 32,
+        all_tags: bool = True,
+        verbose: bool = True,
+    ) -> list[Sentence]:
         """
         Inputs:
         - text: decision court on which the SequenceClassifier will make some predictions
         - mini_batch_size: size of the minibatch, usually bigger is more rapid but consume more memory
         - all_tags: get probability distribution across categories for each token
+        - verbose: if True verbose is applied to the model
 
         Returns a generator containing flair sentences with NER predicted tags
         """
@@ -41,12 +47,12 @@ class JuriTagger:
             self.flair_sentences,
             mini_batch_size=mini_batch_size,
             return_probabilities_for_all_classes=all_tags,
-            verbose=True,
+            verbose=verbose,
         )
 
         return self.flair_sentences
 
-    def get_entity_json_from_flair_sentences(self) -> List[NamedEntity]:
+    def get_entity_json_from_flair_sentences(self) -> list[NamedEntity]:
         """
         Returns a list containing dictionaries formatted to be the input of
         the class PostProcess to enhance the predictions and check irregularities.

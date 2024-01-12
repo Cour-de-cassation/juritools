@@ -12,8 +12,9 @@ if os.name == "nt":
     pathlib.PosixPath = pathlib.WindowsPath
 
 FIXTURE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "model")
-model = load_ner_model(os.path.join(FIXTURE_DIR, "sequence_tagger.pt"))
+model = load_ner_model(os.path.join(FIXTURE_DIR, "new_categories_model.pt"))
 tokenizer = JuriSpacyTokenizer()
+
 
 @pytest.fixture(scope="session")
 def juritagger():
@@ -29,10 +30,16 @@ def test_simple_text(juritagger):
         entity.score = 1.0
     assert named_entities == [
         NamedEntity(
-            text="Pierre", start=0, end=6, label="personnePhysique", source="NER model"
+            text="Pierre",
+            start=0,
+            label="personnePhysique",
+            source="NER model",
         ),
         NamedEntity(
-            text="Dupont", start=7, end=13, label="personnePhysique", source="NER model"
+            text="Dupont",
+            start=7,
+            label="personnePhysique",
+            source="NER model",
         ),
     ]
 
@@ -58,4 +65,3 @@ def test_simple_text_old(juritagger):
             "source": "NER model",
         },
     ]
-
